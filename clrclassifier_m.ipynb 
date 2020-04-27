@@ -1,0 +1,48 @@
+#import necessary libraries
+from zumi.zumi import Zumi
+from zumi.util.camera import Camera
+from zumi.util.screen import Screen
+from threading import Thread
+from zumi.util.color_classifier import ColorClassifier
+
+zumi = Zumi()
+camera = Camera()
+screen = Screen()
+
+camera.start_camera()
+
+#retrieve previously trained data set
+knn = ColorClassifier()
+train = knn.set_values()
+
+#boolean function
+global is_green
+is_green = False
+
+def continue_straight():
+    while is_green: #while true Zumi will continue to run
+        zumi.go_straight(20, 0)
+    zumi.stop(0)
+    
+try:
+    print("Start predicting, press enter to predict!")
+    camera.start_camera()
+    knn.fit("hsv")
+    
+    while True:
+        if input("press enter (or q to exit) : ") == 'q':
+            break
+        image = camera.capture()
+        predict = knn.predict(image)
+        if predict == "green":
+            is_green = True
+            drive_thread = Thread(target=continue_straight)
+            drive_thread.start()
+        if predict == "red":
+            is_green = False
+            zumi.stop()
+finally:
+    is_green = False
+    zumi.stop()
+    camera.close()
+
